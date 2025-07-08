@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+// import "dotenv/config";
 
 export default function App() {
   const [mode, setMode] = useState(0); // 0 = manual, 1 = auto
@@ -9,9 +10,10 @@ export default function App() {
   const [status, setStatus] = useState("");
 
   // Fetch current status from backend
+  // console.log(process.env.BACKEND_HOST);
   useEffect(() => {
     axios
-      .get("http://localhost:3001/api/status")
+      .get(`${import.meta.env.VITE_BACKEND_HOST}/api/status`)
       .then((res) => {
         const data = res.data;
         setMode(data.mode);
@@ -37,7 +39,10 @@ export default function App() {
     };
 
     try {
-      await axios.post("http://localhost:3001/api/control", payload);
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_HOST}/api/control`,
+        payload
+      );
       setStatus("✅ Data sent to ESP!");
     } catch (err) {
       console.error(err);
@@ -101,7 +106,7 @@ export default function App() {
           onClick={sendUpdate}
           className="w-full py-2 mt-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
         >
-          Kirim ke ESP
+          Sent to ESP
         </button>
 
         {status && (
