@@ -13,7 +13,7 @@ export default function App() {
   // console.log(process.env.BACKEND_HOST);
   useEffect(() => {
     axios
-      .get(`${import.meta.env.VITE_BACKEND_HOST}/api/status`)
+      .get("https://backend-pump-control-production.up.railway.app/api/status")
       .then((res) => {
         const data = res.data;
         setMode(data.mode);
