@@ -7,6 +7,7 @@ export default function App() {
   const [startTime, setStartTime] = useState("06:00");
   const [stopTime, setStopTime] = useState("18:00");
   const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const statusTimeout = useRef(null);
 
@@ -22,7 +23,7 @@ export default function App() {
   };
 
   const fetchStatus = async () => {
-    if (isEditing) return; // ⛔ Skip fetching during editing
+    if (isEditing) return;
     try {
       const res = await axios.get(
         `${import.meta.env.VITE_BACKEND_HOST}/api/status`
@@ -41,7 +42,7 @@ export default function App() {
     fetchStatus();
     const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
-  }, [isEditing]); // refetch when editing state changes
+  }, [isEditing]);
 
   const sendUpdate = async () => {
     const payload = {
@@ -51,101 +52,123 @@ export default function App() {
       stopSec: convertToSeconds(stopTime),
     };
 
+    setLoading(true);
     try {
       await axios.post(
         `${import.meta.env.VITE_BACKEND_HOST}/api/control`,
         payload
       );
       setStatus("✅ Data sent successfully");
-
-      // Reset editing state after sending
       setIsEditing(false);
-
-      // Clear status after 3 seconds
-      clearTimeout(statusTimeout.current);
-      statusTimeout.current = setTimeout(() => setStatus(""), 3000);
     } catch (err) {
       console.error("Send update failed:", err);
       setStatus("❌ Failed to send data");
+    } finally {
+      setLoading(false);
       clearTimeout(statusTimeout.current);
       statusTimeout.current = setTimeout(() => setStatus(""), 3000);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-4 text-center">
+    <div className="min-h-screen bg-gradient-to-tr from-blue-100 to-indigo-100 flex flex-col items-center justify-center px-4 py-8">
+      <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm transition-all duration-300">
+        <h1 className="text-2xl font-bold mb-6 text-center text-indigo-700">
           Pompa Control Panel
         </h1>
 
-        <div className="mb-4">
-          <label className="block mb-1">Mode</label>
+        <div className="flex flex-col gap-4">
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">Mode</label>
+            <button
+              className={`w-full py-2 rounded-lg transition-all duration-300 ${
+                mode
+                  ? "bg-blue-500 hover:bg-blue-600"
+                  : "bg-gray-400 hover:bg-gray-500"
+              } text-white font-semibold`}
+              onClick={() => {
+                setMode(mode === 1 ? 0 : 1);
+                setIsEditing(true);
+              }}
+            >
+              {mode ? "Auto" : "Manual"}
+            </button>
+          </div>
+
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">
+              Pompa
+            </label>
+            <button
+              className={`w-full py-2 rounded-lg transition-all duration-300 ${
+                value
+                  ? "bg-green-500 hover:bg-green-600"
+                  : "bg-red-500 hover:bg-red-600"
+              } text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed`}
+              onClick={() => {
+                setValue(value === 1 ? 0 : 1);
+                setIsEditing(true);
+              }}
+              disabled={mode === 1}
+            >
+              {value ? "ON" : "OFF"}
+            </button>
+          </div>
+
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">
+              Start Time (Auto Mode)
+            </label>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => {
+                setStartTime(e.target.value);
+                setIsEditing(true);
+              }}
+              className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">
+              Stop Time (Auto Mode)
+            </label>
+            <input
+              type="time"
+              value={stopTime}
+              onChange={(e) => {
+                setStopTime(e.target.value);
+                setIsEditing(true);
+              }}
+              className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
+            />
+          </div>
+
           <button
-            className={`w-full py-2 rounded ${
-              mode ? "bg-blue-500" : "bg-gray-400"
-            } text-white`}
-            onClick={() => {
-              setMode(mode === 1 ? 0 : 1);
-              setIsEditing(true);
-            }}
+            onClick={sendUpdate}
+            disabled={loading}
+            className={`w-full py-3 mt-2 rounded-lg font-semibold text-white transition-all duration-300 ${
+              loading
+                ? "bg-indigo-300 cursor-wait"
+                : "bg-indigo-600 hover:bg-indigo-700"
+            }`}
           >
-            {mode ? "Auto" : "Manual"}
+            {loading ? "Sending..." : "Send to ESP"}
           </button>
+
+          {status && (
+            <div
+              className={`mt-4 text-center text-sm px-4 py-2 rounded-lg ${
+                status.includes("✅")
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+              }`}
+            >
+              {status}
+            </div>
+          )}
         </div>
-
-        <div className="mb-4">
-          <label className="block mb-1">Pompa</label>
-          <button
-            className={`w-full py-2 rounded ${
-              value ? "bg-green-500" : "bg-red-500"
-            } text-white`}
-            onClick={() => {
-              setValue(value === 1 ? 0 : 1);
-              setIsEditing(true);
-            }}
-            disabled={mode === 1}
-          >
-            {value ? "ON" : "OFF"}
-          </button>
-        </div>
-
-        <div className="mb-4">
-          <label className="block mb-1">Start Time (Auto Mode)</label>
-          <input
-            type="time"
-            value={startTime}
-            onChange={(e) => {
-              setStartTime(e.target.value);
-              setIsEditing(true);
-            }}
-            className="w-full border px-2 py-1 rounded"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="block mb-1">Stop Time (Auto Mode)</label>
-          <input
-            type="time"
-            value={stopTime}
-            onChange={(e) => {
-              setStopTime(e.target.value);
-              setIsEditing(true);
-            }}
-            className="w-full border px-2 py-1 rounded"
-          />
-        </div>
-
-        <button
-          onClick={sendUpdate}
-          className="w-full py-2 mt-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-        >
-          Send to ESP
-        </button>
-
-        {status && (
-          <p className="mt-4 text-center text-sm text-gray-600">{status}</p>
-        )}
       </div>
     </div>
   );
