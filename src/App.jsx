@@ -40,7 +40,7 @@ export default function App() {
 
     try {
       await axios.post(
-        `${import.meta.env.VITE_BACKEND_HOST}/api/control`,
+        "https://backend-pump-control-production.up.railway.app/api/control",
         payload
       );
       setStatus("✅ Data sent to ESP!");
