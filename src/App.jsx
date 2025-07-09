@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-// import "dotenv/config";
 
 export default function App() {
   const [mode, setMode] = useState(0);
@@ -8,13 +7,22 @@ export default function App() {
   const [startTime, setStartTime] = useState("06:00");
   const [stopTime, setStopTime] = useState("18:00");
   const [status, setStatus] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const statusTimeout = useRef(null);
 
   const convertToSeconds = (timeStr) => {
     const [h, m] = timeStr.split(":").map(Number);
     return h * 3600 + m * 60;
   };
 
+  const secondsToTime = (sec) => {
+    const h = String(Math.floor(sec / 3600)).padStart(2, "0");
+    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, "0");
+    return `${h}:${m}`;
+  };
+
   const fetchStatus = async () => {
+    if (isEditing) return; // ⛔ Skip fetching during editing
     try {
       const res = await axios.get(
         `${import.meta.env.VITE_BACKEND_HOST}/api/status`
@@ -25,21 +33,15 @@ export default function App() {
       setStartTime(secondsToTime(data.startSec ?? 21600));
       setStopTime(secondsToTime(data.stopSec ?? 64800));
     } catch (err) {
-      console.error(err);
+      console.error("Fetch status failed:", err);
     }
-  };
-
-  const secondsToTime = (sec) => {
-    const h = String(Math.floor(sec / 3600)).padStart(2, "0");
-    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, "0");
-    return `${h}:${m}`;
   };
 
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isEditing]); // refetch when editing state changes
 
   const sendUpdate = async () => {
     const payload = {
@@ -48,15 +50,25 @@ export default function App() {
       startSec: convertToSeconds(startTime),
       stopSec: convertToSeconds(stopTime),
     };
+
     try {
       await axios.post(
         `${import.meta.env.VITE_BACKEND_HOST}/api/control`,
         payload
       );
       setStatus("✅ Data sent successfully");
+
+      // Reset editing state after sending
+      setIsEditing(false);
+
+      // Clear status after 3 seconds
+      clearTimeout(statusTimeout.current);
+      statusTimeout.current = setTimeout(() => setStatus(""), 3000);
     } catch (err) {
-      console.error(err);
+      console.error("Send update failed:", err);
       setStatus("❌ Failed to send data");
+      clearTimeout(statusTimeout.current);
+      statusTimeout.current = setTimeout(() => setStatus(""), 3000);
     }
   };
 
@@ -73,7 +85,10 @@ export default function App() {
             className={`w-full py-2 rounded ${
               mode ? "bg-blue-500" : "bg-gray-400"
             } text-white`}
-            onClick={() => setMode(mode === 1 ? 0 : 1)}
+            onClick={() => {
+              setMode(mode === 1 ? 0 : 1);
+              setIsEditing(true);
+            }}
           >
             {mode ? "Auto" : "Manual"}
           </button>
@@ -85,7 +100,10 @@ export default function App() {
             className={`w-full py-2 rounded ${
               value ? "bg-green-500" : "bg-red-500"
             } text-white`}
-            onClick={() => setValue(value === 1 ? 0 : 1)}
+            onClick={() => {
+              setValue(value === 1 ? 0 : 1);
+              setIsEditing(true);
+            }}
             disabled={mode === 1}
           >
             {value ? "ON" : "OFF"}
@@ -97,7 +115,10 @@ export default function App() {
           <input
             type="time"
             value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
+            onChange={(e) => {
+              setStartTime(e.target.value);
+              setIsEditing(true);
+            }}
             className="w-full border px-2 py-1 rounded"
           />
         </div>
@@ -107,7 +128,10 @@ export default function App() {
           <input
             type="time"
             value={stopTime}
-            onChange={(e) => setStopTime(e.target.value)}
+            onChange={(e) => {
+              setStopTime(e.target.value);
+              setIsEditing(true);
+            }}
             className="w-full border px-2 py-1 rounded"
           />
         </div>
