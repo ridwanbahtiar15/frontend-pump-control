@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
 export default function App() {
+  useEffect(() => {
+    document.title = "Dashboard";
+  });
+
   const [mode, setMode] = useState(0);
   const [value, setValue] = useState(0);
   const [startTime, setStartTime] = useState("06:00");
@@ -23,10 +27,20 @@ export default function App() {
   };
 
   const fetchStatus = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setStatus("❌ Token not found, please login.");
+      return;
+    }
     if (isEditing) return;
     try {
       const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_HOST}/api/status`
+        `${import.meta.env.VITE_BACKEND_HOST}/api/status`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       const data = res.data;
       setMode(data.mode ?? 0);
@@ -34,13 +48,17 @@ export default function App() {
       setStartTime(secondsToTime(data.startSec ?? 21600));
       setStopTime(secondsToTime(data.stopSec ?? 64800));
     } catch (err) {
-      console.error("Fetch status failed:", err);
+      // console.error("Fetch status failed:", err);
+      setStatus("❌ Failed to fetch status.");
+      if (err.status == 403) {
+        handleLogout();
+      }
     }
   };
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 1000);
+    const interval = setInterval(fetchStatus, 2000);
     return () => clearInterval(interval);
   }, [isEditing]);
 
@@ -54,20 +72,44 @@ export default function App() {
 
     setLoading(true);
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setStatus("❌ Token not found, please login.");
+        setLoading(false);
+        return;
+      }
+
       await axios.post(
         `${import.meta.env.VITE_BACKEND_HOST}/api/control`,
-        payload
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
       setStatus("✅ Data sent successfully");
       setIsEditing(false);
     } catch (err) {
-      console.error("Send update failed:", err);
+      // console.error("Send update failed:", err);
       setStatus("❌ Failed to send data");
+      if (err.status == 403) {
+        handleLogout();
+      }
     } finally {
       setLoading(false);
       clearTimeout(statusTimeout.current);
       statusTimeout.current = setTimeout(() => setStatus(""), 3000);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setStatus("✅ Logged out successfully.");
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   return (
@@ -126,7 +168,7 @@ export default function App() {
                 setStartTime(e.target.value);
                 setIsEditing(true);
               }}
-              className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
+              className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring focus:ring-gray-300"
             />
           </div>
 
@@ -141,20 +183,27 @@ export default function App() {
                 setStopTime(e.target.value);
                 setIsEditing(true);
               }}
-              className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
+              className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring focus:ring-gray-300"
             />
           </div>
 
           <button
             onClick={sendUpdate}
             disabled={loading}
-            className={`w-full py-3 mt-2 rounded-lg font-semibold text-white transition-all duration-300 ${
+            className={`w-full py-3 mt-2 rounded-lg font-semibold text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 ${
               loading
                 ? "bg-indigo-300 cursor-wait"
                 : "bg-indigo-600 hover:bg-indigo-700"
             }`}
           >
             {loading ? "Sending..." : "Send to ESP"}
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="w-full py-3 mt-2 rounded-lg font-semibold text-white bg-red-500 hover:bg-red-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-300"
+          >
+            Logout
           </button>
 
           {status && (
