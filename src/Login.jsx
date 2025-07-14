@@ -12,7 +12,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const backendBase = "http://192.168.0.105:3000"; // Ganti sesuai backend Railway/Render Anda
+  const backendBase = import.meta.env.VITE_BACKEND_HOST;
 
   const handleLogin = async (e) => {
     e.preventDefault();
