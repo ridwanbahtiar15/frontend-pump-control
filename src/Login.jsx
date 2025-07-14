@@ -45,7 +45,8 @@ export default function Login() {
             <label className="block text-sm font-medium">Username</label>
             <input
               type="text"
-              className="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+              className="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 placeholder:text-gray-400 placeholder:text-sm"
+              placeholder="Enter Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -55,7 +56,8 @@ export default function Login() {
             <label className="block text-sm font-medium">Password</label>
             <input
               type="password"
-              className="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+              className="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 placeholder:text-gray-400 placeholder:text-sm"
+              placeholder="Enter Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
