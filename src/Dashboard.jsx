@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 export default function App() {
   useEffect(() => {
@@ -14,6 +15,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const statusTimeout = useRef(null);
+  const navigate = useNavigate();
 
   const convertToSeconds = (timeStr) => {
     const [h, m] = timeStr.split(":").map(Number);
@@ -107,6 +109,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     setStatus("✅ Logged out successfully.");
+    navigate("/");
     //setTimeout(() => {
       //window.location.reload();
     //}, 1000);
