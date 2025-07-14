@@ -107,9 +107,9 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     setStatus("✅ Logged out successfully.");
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
+    //setTimeout(() => {
+      //window.location.reload();
+    //}, 1000);
   };
 
   return (
